@@ -22,5 +22,4 @@ struct FFGFrameMovement
 private:
 	FVector MovementDelta = FVector::ZeroVector;
 	FVector StartLocation = FVector::ZeroVector;
-
 };

@@ -47,22 +47,29 @@ protected:
 		int32 GetPing() const;
 
 	UFUNCTION(Server, Unreliable)
-		void Server_SendLocation(const FVector& LocationToSend);
+		void Server_SendLocation(const FVector& LocationToSend, float DeltaTime);
 
 	UFUNCTION(Server, Unreliable)
-		void Server_SendRotation(const FRotator& LocationToSend);
+		void Server_SendRotation(const FRotator& LocationToSend, float DeltaTime);
 
 	UFUNCTION(NetMulticast, Unreliable)
-		void Multicast_SendLocation(const FVector& LocationToSend);
+		void Multicast_SendLocation(const FVector& LocationToSend, float DeltaTime);
 
 	UFUNCTION(NetMulticast, Unreliable)
-		void Multicast_SendRotation(const FRotator& RotationToSend);
+		void Multicast_SendRotation(const FRotator& RotationToSend, float DeltaTime);
 
 private:
 	void Handle_Acceleration(float Value);
 	void Handle_Turn(float Value);
 	void Handle_BrakePressed();
 	void Handle_BrakeReleased();
+
+	FVector prevPingedLocation = FVector::ZeroVector;
+	FRotator prevPingedRotation = FRotator::ZeroRotator;
+
+	float PrevPingedTime = 0.0f;
+
+	const float TransitionTime = 2.5f;
 
 	float Forward = 0.0f;
 	float Turn = 0.0f;

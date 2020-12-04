@@ -76,9 +76,21 @@ void AFGPlayer::Tick(float DeltaTime)
 		FrameMovement.AddDelta(GetActorForwardVector() * MovementVelocity * DeltaTime);
 		MovementComponent->Move(FrameMovement);
 
+		Server_SendRotation(GetActorRotation(), DeltaTime);
+		Server_SendLocation(GetActorLocation(), DeltaTime);
+	}
 
-		Server_SendRotation(GetActorRotation());
-		Server_SendLocation(GetActorLocation());
+	else
+	{
+		if (GetActorLocation() != prevPingedLocation)
+		{
+			SetActorLocation(FMath::VInterpTo(GetActorLocation(), prevPingedLocation, PrevPingedTime, TransitionTime));
+		}
+
+		if (GetActorRotation() != prevPingedRotation)
+		{
+			SetActorRotation(FMath::RInterpTo(GetActorRotation(), prevPingedRotation, PrevPingedTime, TransitionTime));
+		}
 	}
 }
 
@@ -92,31 +104,33 @@ int32 AFGPlayer::GetPing() const
 	return 0;
 }
 
-void AFGPlayer::Multicast_SendLocation_Implementation(const FVector& LocationToSend)
+void AFGPlayer::Multicast_SendLocation_Implementation(const FVector& LocationToSend, float DeltaTime)
 {
 	if (!IsLocallyControlled())
 	{
-		SetActorLocation(LocationToSend);
+		prevPingedLocation = LocationToSend;
+		PrevPingedTime = DeltaTime;
 	}
+
 }
 
-void AFGPlayer::Server_SendLocation_Implementation(const FVector& LocationToSend)
-{
-	Multicast_SendLocation(LocationToSend);
-}
-
-
-void AFGPlayer::Multicast_SendRotation_Implementation(const FRotator& RotationToSend)
+void AFGPlayer::Multicast_SendRotation_Implementation(const FRotator& RotationToSend, float DeltaTime)
 {
 	if (!IsLocallyControlled())
 	{
-		SetActorRotation(RotationToSend);
+		prevPingedRotation = RotationToSend;
+		PrevPingedTime = DeltaTime;
 	}
 }
 
-void AFGPlayer::Server_SendRotation_Implementation(const FRotator& RotationToSend)
+void AFGPlayer::Server_SendLocation_Implementation(const FVector& LocationToSend, float DeltaTime)
 {
-	Multicast_SendRotation(RotationToSend);
+	Multicast_SendLocation(LocationToSend, DeltaTime);
+}
+
+void AFGPlayer::Server_SendRotation_Implementation(const FRotator& RotationToSend, float DeltaTime)
+{
+	Multicast_SendRotation(RotationToSend, DeltaTime);
 }
 
 void AFGPlayer::Handle_Acceleration(float Value)
