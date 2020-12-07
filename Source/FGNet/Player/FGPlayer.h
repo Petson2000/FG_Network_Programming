@@ -64,7 +64,7 @@ private:
 	void Handle_BrakePressed();
 	void Handle_BrakeReleased();
 
-	FVector prevPingedLocation = FVector::ZeroVector;
+	FVector PrevPingedLocation = FVector::ZeroVector;
 	FRotator prevPingedRotation = FRotator::ZeroRotator;
 
 	float PrevPingedTime = 0.0f;

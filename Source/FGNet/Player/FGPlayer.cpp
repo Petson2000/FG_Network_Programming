@@ -82,9 +82,9 @@ void AFGPlayer::Tick(float DeltaTime)
 
 	else
 	{
-		if (GetActorLocation() != prevPingedLocation)
+		if (GetActorLocation() != PrevPingedLocation)
 		{
-			SetActorLocation(FMath::VInterpTo(GetActorLocation(), prevPingedLocation, PrevPingedTime, TransitionTime));
+			SetActorLocation(FMath::VInterpTo(GetActorLocation(), PrevPingedLocation, PrevPingedTime, TransitionTime));
 		}
 
 		if (GetActorRotation() != prevPingedRotation)
@@ -93,7 +93,7 @@ void AFGPlayer::Tick(float DeltaTime)
 		}
 	}
 }
-
+ 
 int32 AFGPlayer::GetPing() const
 {
 	if (GetPlayerState())
@@ -108,7 +108,7 @@ void AFGPlayer::Multicast_SendLocation_Implementation(const FVector& LocationToS
 {
 	if (!IsLocallyControlled())
 	{
-		prevPingedLocation = LocationToSend;
+		PrevPingedLocation = LocationToSend;
 		PrevPingedTime = DeltaTime;
 	}
 
