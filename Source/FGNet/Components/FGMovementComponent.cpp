@@ -71,6 +71,7 @@ void UFGMovementComponent::Internal_SetFacingRotation(const FRotator& InFacingRo
 	else
 	{
 		SetComponentTickEnabled(true);
+		FacingRotationSpeed = InRotationSpeed;
 	}
 }
 
