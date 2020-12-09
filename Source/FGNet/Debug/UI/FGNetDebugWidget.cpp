@@ -2,7 +2,7 @@
 #include "Engine/World.h"
 #include "Engine/NetDriver.h"
 #include "GameFramework/PlayerController.h"
-#include "GameFramework/PlayerStart.h"
+#include "GameFramework/PlayerState.h"
 #include "Misc/DefaultValueHelper.h"
 
 void UFGNetDebugWidget::UpdateNetworkSimulationSettings(const FFGBlueprintNetworkSimulationSettings& InPackets)

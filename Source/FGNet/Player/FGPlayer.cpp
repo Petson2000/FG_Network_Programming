@@ -8,6 +8,7 @@
 #include "GameFramework/PlayerState.h"
 #include "../Components/FGMovementComponent.h"
 #include "../FGMovementStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "FGPlayerSettings.h"
 #include "../Debug/UI/FGNetDebugWidget.h"
 
@@ -37,10 +38,9 @@ void AFGPlayer::BeginPlay()
 {
 	Super::BeginPlay();
 
-	CreateDebugWidget();
-
 	MovementComponent->SetUpdatedComponent(CollisionComponent);
 
+	CreateDebugWidget();
 	if (DebugMenuInstance != nullptr)
 	{
 		DebugMenuInstance->SetVisibility(ESlateVisibility::Collapsed);
@@ -95,12 +95,18 @@ void AFGPlayer::Tick(float DeltaTime)
 	
 		Server_SendRotation(GetActorRotation(), DeltaTime);
 		Server_SendLocation(GetActorLocation(), DeltaTime);
+
+		Server_SendYaw(MovementComponent->GetFacingRotation().Yaw);
 	}
 
 	else
 	{
 		if (GetActorLocation() != prevPingedLocation)
 		{
+			//const FVector NewLocation = FMath::VInterpTo(GetActorLocation(), ReplicatedLocation, PrevPingedTime, TransitionTime);
+			//
+			//SetActorLocation(NewLocation);
+
 			SetActorLocation(FMath::VInterpTo(GetActorLocation(), prevPingedLocation, PrevPingedTime, TransitionTime));
 		}
 	
@@ -108,6 +114,9 @@ void AFGPlayer::Tick(float DeltaTime)
 		{
 			SetActorRotation(FMath::RInterpTo(GetActorRotation(), prevPingedRotation, PrevPingedTime, TransitionTime));
 		}
+
+		MovementComponent->SetFacingRotation(FRotator(0.0f, ReplicatedYaw, 0.0f), 7.0f);
+		SetActorRotation(MovementComponent->GetFacingRotation());
 	}
 }
 
@@ -142,6 +151,7 @@ void AFGPlayer::Multicast_SendRotation_Implementation(const FRotator& RotationTo
 
 void AFGPlayer::Server_SendLocation_Implementation(const FVector& LocationToSend, float DeltaTime)
 {
+	//ReplicatedLocation = LocationToSend;
 	Multicast_SendLocation(LocationToSend, DeltaTime);
 }
 
@@ -150,6 +160,10 @@ void AFGPlayer::Server_SendRotation_Implementation(const FRotator& RotationToSen
 	Multicast_SendRotation(RotationToSend, DeltaTime);
 }
 
+void AFGPlayer::Server_SendYaw_Implementation(float NewYaw)
+{
+	ReplicatedYaw = NewYaw;
+}
 
 void AFGPlayer::Handle_Acceleration(float Value)
 {
@@ -190,6 +204,11 @@ void AFGPlayer::ShowDebugMenu()
 {
 	CreateDebugWidget();
 
+	if (DebugMenuInstance == nullptr)
+	{
+		return;
+	}
+
 	DebugMenuInstance->SetVisibility(ESlateVisibility::Visible);
 	DebugMenuInstance->BP_OnShowWidget();
 }
@@ -205,7 +224,7 @@ void AFGPlayer::HideDebugMenu()
 	DebugMenuInstance->BP_OnHideWidget();
 }
 
-void CreateDebugWidget()
+void AFGPlayer::CreateDebugWidget()
 {
 	if (DebugMenuClass == nullptr)
 	{
@@ -219,7 +238,15 @@ void CreateDebugWidget()
 
 	if (DebugMenuInstance == nullptr)
 	{
-		DebugMenuInstance = CreateDebugWidget<UFGNetDebugWidget>(GetWorld(), DebugMenuClass);
+		DebugMenuInstance = CreateWidget<UFGNetDebugWidget>(GetWorld(), DebugMenuClass);
 		DebugMenuInstance->AddToViewport();
 	}
+}
+
+void AFGPlayer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AFGPlayer, ReplicatedYaw);
+	DOREPLIFETIME(AFGPlayer, ReplicatedLocation);
 }

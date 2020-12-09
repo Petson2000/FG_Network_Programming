@@ -45,7 +45,9 @@ class FGNET_API UFGNetDebugWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
-	UFGNetDebugWidget(const FObjectInitializer& ObjectInitializer);
+public:
+
+	//UFGNetDebugWidget(const FObjectInitializer& ObjectInitializer);
 
 	UFUNCTION(BlueprintCallable, Category = Widget)
 	void UpdateNetworkSimulationSettings(const FFGBlueprintNetworkSimulationSettings& InPackets);

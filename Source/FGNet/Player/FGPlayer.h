@@ -47,19 +47,22 @@ protected:
 
 	UFUNCTION(Server, Unreliable)
 	void Server_SendRotation(const FRotator& LocationToSend, float DeltaTime);
+	
+	UFUNCTION(Server, Unreliable)
+	void Server_SendYaw(float NewYaw);
 
-	UFUNCTION(NetMulticast, Unreliable)
+	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_SendLocation(const FVector& LocationToSend, float DeltaTime);
 
-	UFUNCTION(NetMulticast, Unreliable)
+	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_SendRotation(const FRotator& RotationToSend, float DeltaTime);
 
 	void ShowDebugMenu();
-
 	void HideDebugMenu();
 
 private:
 
+	void CreateDebugWidget();
 	void Handle_Acceleration(float Value);
 	void Handle_Turn(float Value);
 	void Handle_BrakePressed();
@@ -95,6 +98,12 @@ private:
 	float PrevPingedTime = 0.0f;
 
 	const float TransitionTime = 2.5f;
+
+	UPROPERTY(Replicated)
+	float ReplicatedYaw = 0.0f;
+
+	UPROPERTY(Replicated)
+	FVector ReplicatedLocation = FVector::ZeroVector;
 
 	float Forward = 0.0f;
 
