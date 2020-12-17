@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameFrameWork/Pawn.h"
+#include "GameFramework/Pawn.h"
 #include "FGPlayer.generated.h"
 
 class UCameraComponent;
@@ -10,6 +10,8 @@ class UStaticMeshComponent;
 class USphereComponent;
 class UFGPlayerSettings;
 class UFGNetDebugWidget;
+class AFGPickup;
+class AFGRocket;
 
 UCLASS()
 class FGNET_API AFGPlayer : public APawn
@@ -19,8 +21,9 @@ class FGNET_API AFGPlayer : public APawn
 public:
 	AFGPlayer();
 
+	virtual void BeginPlay();
 
-public:
+	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(EditAnywhere, Category = Settings)
 	UFGPlayerSettings* PlayerSettings = nullptr;
@@ -34,13 +37,15 @@ public:
 	UFUNCTION(BlueprintPure)
 	int32 GetPing() const;
 
-protected:
+	void OnPickup(AFGPickup* Pickup);
 
-	virtual void BeginPlay();
-
-	virtual void Tick(float DeltaTime) override;
+	UFUNCTION(Server, Reliable)
+	void Server_OnPickup(AFGPickup* Pickup);
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	UFUNCTION(Client, Reliable)
+	void Client_OnPickupRockets(int32 PickedUpRockets);
 
 	UFUNCTION(Server, Unreliable)
 	void Server_SendLocation(const FVector& LocationToSend, float DeltaTime);
@@ -57,19 +62,84 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_SendRotation(const FRotator& RotationToSend, float DeltaTime);
 
+	UFUNCTION(BlueprintPure)
+	int32 GetNumRockets() const { return NumRockets; }
+
+	UFUNCTION(BlueprintImplementableEvent, Category = Player, meta = (DisplayName = "On Num Rockets Changed"))
+	void BP_OnNumRocketsChanged(int32 NewNumRockets);
+
 	void ShowDebugMenu();
+
 	void HideDebugMenu();
+
+	int32 GetNumActiveRockets() const;
+
+	void FireRocket();
+
+	void SpawnRockets();
 
 private:
 
+	void AddMovementVelocity(float DeltaTime);
+
 	void CreateDebugWidget();
+
 	void Handle_Acceleration(float Value);
 	void Handle_Turn(float Value);
 	void Handle_BrakePressed();
 	void Handle_BrakeReleased();
 	void Handle_DebugMenuPressed();
+	void Handle_FirePressed();
+
+	FVector GetRocketStartLocation() const;
+	AFGRocket* GetFreeRocket() const;
+
+	UFUNCTION(Server, Reliable)
+	void Server_FireRocket(AFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_FireRocket(AFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation);
+	
+	UFUNCTION(Client, Reliable)
+	void Client_RemoveRocket(AFGRocket* RocketToRemove);
+	
+	UFUNCTION(BlueprintCallable)
+	void Cheat_IncreaseRockets(int32 InNumRockets);
+
+	UFUNCTION(Server, Unreliable)
+	void Server_SendMovement(const FVector& ClientLocation, float TimeStamp, float ClientForward, float ClientYaw);
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_SendMovement(const FVector& InClientLocation, float TimeStamp, float ClientForward, float ClientYaw);
+	
+	UPROPERTY(Replicated, Transient)
+	TArray<AFGRocket*> RocketInstances;
+	
+	UPROPERTY(EditAnywhere, Category = Weapon)
+	TSubclassOf<AFGRocket> RocketClass;
+
+	int32 MaxActiveRockets = 50;
+
+	float FireCooldownElapsed = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = Weapon)
+	bool bUnlimitedRockets = false;
+
+	float ClientTimeStamp = 0.0f;
+	float LastCorrectionDelta = 0.0f;
+	float ServerTimeStamp = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = Network)
+	bool bPerformNetworkSmoothing = true;
+
+	FVector OriginalMeshOffset = FVector::ZeroVector;
 
 private:
+
+	int32 ServerNumRockets = 0;
+
+	int32 NumRockets = 0;
+
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Collision")
 	USphereComponent* CollisionComponent;
