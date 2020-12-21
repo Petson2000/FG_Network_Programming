@@ -42,6 +42,8 @@ void AFGPlayer::BeginPlay()
 {
 	Super::BeginPlay();
 
+	CurrentHealth = PlayerSettings->MaxHealth;
+
 	MovementComponent->SetUpdatedComponent(CollisionComponent);
 
 	CreateDebugWidget();
@@ -71,6 +73,7 @@ void AFGPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	PlayerInputComponent->BindAction(TEXT("DebugMenu"), IE_Pressed, this, &AFGPlayer::Handle_DebugMenuPressed);
 }
+
 
 void AFGPlayer::Tick(float DeltaTime)
 {
@@ -165,6 +168,19 @@ void AFGPlayer::OnPickup(AFGPickup* Pickup)
 	{
 		Server_OnPickup(Pickup);
 	}
+}
+
+void AFGPlayer::Server_TakeDamage_Implementation(float DamageAmount)
+{
+	if (IsLocallyControlled())
+	{
+		CurrentHealth -= DamageAmount;
+	}
+}
+
+void AFGPlayer::Multicast_TakeDamage_Implementation(float DamageAmount)
+{
+	//Update Health in widget
 }
 
 void AFGPlayer::Server_FireRocket_Implementation(AFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation)

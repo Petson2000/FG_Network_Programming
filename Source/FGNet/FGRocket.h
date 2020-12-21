@@ -28,6 +28,11 @@ public:
 
 	void MakeFree();
 
+public:
+	UPROPERTY(EditAnywhere, Category = Damage, meta = (ClampMin = 1.0f))
+	float DamageAmount = 2.0f;
+
+
 private:
 
 	void SetRocketVisibility(bool bVisible);
@@ -52,6 +57,7 @@ private:
 	FQuat FacingRotationCorrection = FQuat::Identity;
 
 	FVector RocketStartLocation = FVector::ZeroVector;
+
 
 	float LifeTime = 2.0f;
 	float LifeTimeElapsed = 0.0f;

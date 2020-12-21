@@ -47,6 +47,12 @@ public:
 	UFUNCTION(Client, Reliable)
 	void Client_OnPickupRockets(int32 PickedUpRockets);
 
+	UFUNCTION(Server, Reliable)
+	void Server_TakeDamage(float DamageAmount);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_TakeDamage(float DamageAmount);
+
 	UFUNCTION(Server, Unreliable)
 	void Server_SendLocation(const FVector& LocationToSend, float DeltaTime);
 
@@ -67,6 +73,9 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Player, meta = (DisplayName = "On Num Rockets Changed"))
 	void BP_OnNumRocketsChanged(int32 NewNumRockets);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = Player, meta = (DisplayName = "On Health Changed"))
+	void BP_OnHealthChanged(float NewHealth);
 
 	void ShowDebugMenu();
 
@@ -112,6 +121,9 @@ private:
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_SendMovement(const FVector& InClientLocation, float TimeStamp, float ClientForward, float ClientYaw);
 	
+
+private:
+
 	UPROPERTY(Replicated, Transient)
 	TArray<AFGRocket*> RocketInstances;
 	
@@ -121,6 +133,8 @@ private:
 	int32 MaxActiveRockets = 50;
 
 	float FireCooldownElapsed = 0.0f;
+
+	float CurrentHealth = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category = Weapon)
 	bool bUnlimitedRockets = false;
@@ -133,8 +147,6 @@ private:
 	bool bPerformNetworkSmoothing = true;
 
 	FVector OriginalMeshOffset = FVector::ZeroVector;
-
-private:
 
 	int32 ServerNumRockets = 0;
 

@@ -80,7 +80,3 @@ void AFGPickup::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* O
 		SetActorTickEnabled(false);
 	}
 }
-
-
-
-
