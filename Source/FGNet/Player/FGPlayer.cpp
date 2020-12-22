@@ -42,6 +42,11 @@ void AFGPlayer::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (!ensure(PlayerSettings != nullptr))
+	{
+		return;
+	}
+
 	CurrentHealth = PlayerSettings->MaxHealth;
 
 	MovementComponent->SetUpdatedComponent(CollisionComponent);
@@ -54,6 +59,7 @@ void AFGPlayer::BeginPlay()
 
 	SpawnRockets();
 
+	BP_OnHealthChanged(CurrentHealth);
 	BP_OnNumRocketsChanged(NumRockets);
 
 	OriginalMeshOffset = MeshComponent->GetRelativeLocation();
@@ -65,12 +71,9 @@ void AFGPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	PlayerInputComponent->BindAxis(TEXT("Accelerate"), this, &AFGPlayer::Handle_Acceleration);
 	PlayerInputComponent->BindAxis(TEXT("Turn"), this, &AFGPlayer::Handle_Turn);
-
 	PlayerInputComponent->BindAction(TEXT("Brake"), IE_Pressed, this, &AFGPlayer::Handle_BrakePressed);
 	PlayerInputComponent->BindAction(TEXT("Brake"), IE_Released, this, &AFGPlayer::Handle_BrakeReleased);
-
 	PlayerInputComponent->BindAction(TEXT("Fire"), IE_Released, this, &AFGPlayer::Handle_FirePressed);
-
 	PlayerInputComponent->BindAction(TEXT("DebugMenu"), IE_Pressed, this, &AFGPlayer::Handle_DebugMenuPressed);
 }
 
@@ -105,10 +108,12 @@ void AFGPlayer::Tick(float DeltaTime)
 		AddMovementVelocity(DeltaTime);
 		MovementVelocity *= FMath::Pow(Friction, DeltaTime);
 	
+		UE_LOG(LogTemp, Warning, TEXT("Movement Velocity: %f"), MovementVelocity);
+
 		MovementComponent->ApplyGravity();
 		FrameMovement.AddDelta(GetActorForwardVector() * MovementVelocity * DeltaTime);
 		MovementComponent->Move(FrameMovement);
-	
+		
 		Server_SendMovement(GetActorLocation(), ClientTimeStamp, Forward, GetActorRotation().Yaw);
 	}
 
@@ -125,6 +130,14 @@ void AFGPlayer::Tick(float DeltaTime)
 			MeshComponent->SetRelativeLocation(NewRelativeLocation, false, nullptr, ETeleportType::TeleportPhysics);
 		}
 	}
+}
+
+float AFGPlayer::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	CurrentHealth -= DamageAmount;
+	Server_OnHealthChanged(DamageAmount);
+
+	return CurrentHealth;
 }
 
 void AFGPlayer::SpawnRockets()
@@ -170,17 +183,19 @@ void AFGPlayer::OnPickup(AFGPickup* Pickup)
 	}
 }
 
-void AFGPlayer::Server_TakeDamage_Implementation(float DamageAmount)
+void AFGPlayer::Server_OnHealthChanged_Implementation(float DamageAmount)
 {
 	if (IsLocallyControlled())
 	{
-		CurrentHealth -= DamageAmount;
+		BP_OnHealthChanged(CurrentHealth);
 	}
+
+	Multicast_OnHealthChanged();
 }
 
-void AFGPlayer::Multicast_TakeDamage_Implementation(float DamageAmount)
+void AFGPlayer::Multicast_OnHealthChanged_Implementation(float DamageAmount)
 {
-	//Update Health in widget
+	BP_OnHealthChanged(CurrentHealth);
 }
 
 void AFGPlayer::Server_FireRocket_Implementation(AFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation)
@@ -330,11 +345,13 @@ void AFGPlayer::Server_SendYaw_Implementation(float NewYaw)
 
 void AFGPlayer::Handle_Acceleration(float Value)
 {
+	GEngine->AddOnScreenDebugMessage(-10, 1.f, FColor::Green, FString::Printf(TEXT("Forward: %f"), Forward));
 	Forward = Value;
 }
 
 void AFGPlayer::Handle_Turn(float Value)
 {
+	GEngine->AddOnScreenDebugMessage(-10, 1.f, FColor::Green, FString::Printf(TEXT("Turn: %f"), Forward));
 	Turn = Value;
 }
 
@@ -366,6 +383,12 @@ void AFGPlayer::Handle_DebugMenuPressed()
 void AFGPlayer::Handle_FirePressed()
 {
 	FireRocket();
+}
+
+void AFGPlayer::Cheat_DecreaseHealthOnPlayer()
+{
+	FDamageEvent E;
+	TakeDamage(5.0f, E, GetInstigatorController(), this);
 }
 
 void AFGPlayer::ShowDebugMenu()
@@ -478,6 +501,7 @@ void AFGPlayer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AFGPlayer, ReplicatedYaw);
+	DOREPLIFETIME(AFGPlayer, CurrentHealth);
 	DOREPLIFETIME(AFGPlayer, ReplicatedLocation);
 	DOREPLIFETIME(AFGPlayer, RocketInstances);
 }

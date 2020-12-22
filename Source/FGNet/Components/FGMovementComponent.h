@@ -20,7 +20,7 @@ public:
 	void ApplyGravity();
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
-		float Gravity = 30.0f;
+	float Gravity = 30.0f;
 
 	FVector GetGravityAsVector() const { return FVector(0.0f, 0.0f, AccumulatedGravity); }
 	FRotator GetFacingRotation() const { return FacingRotationCurrent; }

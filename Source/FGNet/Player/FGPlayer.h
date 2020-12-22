@@ -25,6 +25,8 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
 	UPROPERTY(EditAnywhere, Category = Settings)
 	UFGPlayerSettings* PlayerSettings = nullptr;
 	
@@ -48,10 +50,10 @@ public:
 	void Client_OnPickupRockets(int32 PickedUpRockets);
 
 	UFUNCTION(Server, Reliable)
-	void Server_TakeDamage(float DamageAmount);
+	void Server_OnHealthChanged(float DamageAmount);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_TakeDamage(float DamageAmount);
+	void Multicast_OnHealthChanged(float DamageAmount);
 
 	UFUNCTION(Server, Unreliable)
 	void Server_SendLocation(const FVector& LocationToSend, float DeltaTime);
@@ -76,6 +78,9 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Player, meta = (DisplayName = "On Health Changed"))
 	void BP_OnHealthChanged(float NewHealth);
+
+	UFUNCTION(BlueprintCallable)
+	void Cheat_DecreaseHealthOnPlayer();
 
 	void ShowDebugMenu();
 
@@ -134,6 +139,7 @@ private:
 
 	float FireCooldownElapsed = 0.0f;
 
+	UPROPERTY(Replicated)
 	float CurrentHealth = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category = Weapon)

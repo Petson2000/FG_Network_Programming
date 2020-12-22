@@ -14,7 +14,6 @@ AFGRocket::AFGRocket()
 	PrimaryActorTick.bCanEverTick = true;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneCompRoot"));
-	
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	MeshComponent->SetupAttachment(RootComponent);
 	MeshComponent->SetGenerateOverlapEvents(false);
@@ -29,17 +28,6 @@ void AFGRocket::BeginPlay()
 	Super::BeginPlay();
 
 	CachedCollisionQueryParams.AddIgnoredActor(this);
-
-	//Owner will be the player that instantiated this
-
-	if (GetOwner() != nullptr)
-	{
-		FString hjello = GetOwner()->GetName();
-
-		UE_LOG(LogTemp, Warning, TEXT("Text, %s"), *hjello);
-
-		CachedCollisionQueryParams.AddIgnoredActor(GetOwner());
-	}
 
 	SetRocketVisibility(false);
 }
@@ -77,11 +65,13 @@ void AFGRocket::Tick(float DeltaTime)
 	const FVector EndLocation = StartLocation + FacingRotationStart * 100.0f;
 	GetWorld()->LineTraceSingleByChannel(Hit, StartLocation, EndLocation, ECC_Visibility, CachedCollisionQueryParams);
 
-	//if (Cast<AFGPlayer>(Hit.Actor) && Hit.Actor != GetOwner())
-	//{
-	//	Cast<AFGPlayer>(Hit.Actor)->Server_TakeDamage(DamageAmount);
-	//	Explode();
-	//}
+	if (Cast<APawn>(Hit.Actor) && Hit.Actor != GetOwner())
+	{
+		FDamageEvent DamageEvent;
+
+		Cast<APawn>(Hit.Actor)->TakeDamage(DamageAmount, DamageEvent, Hit.Actor->GetInstigatorController(), this);
+		Explode();
+	}
 
 	if (Hit.bBlockingHit)
 	{

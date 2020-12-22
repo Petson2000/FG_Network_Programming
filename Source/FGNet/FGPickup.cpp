@@ -10,7 +10,9 @@ AFGPickup::AFGPickup()
 	PrimaryActorTick.bStartWithTickEnabled = true;
 	PrimaryActorTick.bCanEverTick = true;
 
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	SceneComp = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+
+	RootComponent = SceneComp;
 
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
 	SphereComponent->SetupAttachment(RootComponent);

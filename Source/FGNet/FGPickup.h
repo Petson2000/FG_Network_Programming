@@ -30,6 +30,9 @@ public:
 
 public:
 
+	UPROPERTY()
+	USceneComponent* SceneComp;
+
 	UPROPERTY(VisibleDefaultsOnly, Category = Collision)
 	USphereComponent* SphereComponent;
 
