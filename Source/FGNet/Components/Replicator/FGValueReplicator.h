@@ -1,10 +1,11 @@
 #pragma once
 
-#include "FGReplicator.h"
+#include "FGReplicatorBase.h"
 #include "FGValueReplicator.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFGOnSmoothValueReplicationChanged);
 
+UCLASS()
 class FGNET_API UFGValueReplicator : public UFGReplicatorBase
 {
 	GENERATED_BODY()
@@ -30,8 +31,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Network)
 	void SetValue(float InValue);
 
-	UFUNCTION(BlueprintPure, Category = Network)
-	float GetValue() const;
+	//UFUNCTION(BlueprintPure, Category = Network)
+	//float GetValue() const;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ClampMin = 1))
 	int32 NumberOfReplicationsPerSecond = 10;
@@ -39,8 +40,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	EFGSmoothReplicatorMode SmoothMode = EFGSmoothReplicatorMode::ConstantVelocity;
 
-	UPROPERTY(BlueprintAssignable)
-	FFGOnSmoothValuereplicationChanged OnValueChanged;
+	//UPROPERTY(BlueprintAssignable)
+	//FFGOnSmoothValuereplicationChanged OnValueChanged;
 
 	bool ShouldTick() const;
 

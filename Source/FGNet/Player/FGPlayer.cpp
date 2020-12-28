@@ -77,6 +77,10 @@ void AFGPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction(TEXT("DebugMenu"), IE_Pressed, this, &AFGPlayer::Handle_DebugMenuPressed);
 }
 
+void AFGPlayer::OnHit(float DamageAmount)
+{
+	Server_OnHealthChanged(DamageAmount);
+}
 
 void AFGPlayer::Tick(float DeltaTime)
 {
@@ -167,6 +171,12 @@ void AFGPlayer::Client_OnPickupRockets_Implementation(int32 PickedUpRockets)
 	BP_OnNumRocketsChanged(NumRockets);
 }
 
+void AFGPlayer::Server_OnPickup_Implementation(AFGPickup* Pickup)
+{
+	ServerNumRockets += Pickup->NumRockets;
+	Client_OnPickupRockets(Pickup->NumRockets);
+}
+
 void AFGPlayer::OnPickup(AFGPickup* Pickup)
 {
 	if (IsLocallyControlled())
@@ -194,6 +204,11 @@ void AFGPlayer::Multicast_OnHealthChanged_Implementation(float DamageAmount)
 	BP_OnHealthChanged(CurrentHealth);
 }
 
+void AFGPlayer::Multicast_OnNumRocketsChanged_Implementation(int32 NewRocketAmount)
+{
+	BP_OnNumRocketsChanged(NewRocketAmount);
+}
+
 void AFGPlayer::Server_FireRocket_Implementation(AFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation)
 {
 	if ((ServerNumRockets - 1) < 0 && !bUnlimitedRockets)
@@ -207,6 +222,7 @@ void AFGPlayer::Server_FireRocket_Implementation(AFGRocket* NewRocket, const FVe
 		const FRotator NewFacingRotation = RocketFacingRotation + FRotator(0.0f, DeltaYaw, 0.0f);
 		ServerNumRockets--;
 		Multicast_FireRocket(NewRocket, RocketStartLocation, NewFacingRotation);
+		Multicast_OnNumRocketsChanged(ServerNumRockets);
 	}
 }
 
@@ -300,11 +316,7 @@ AFGRocket* AFGPlayer::GetFreeRocket() const
 	return nullptr;
 }
 
-void AFGPlayer::Server_OnPickup_Implementation(AFGPickup* Pickup)
-{
-	ServerNumRockets += Pickup->NumRockets;
-	Client_OnPickupRockets(Pickup->NumRockets);
-}
+
 
 void AFGPlayer::Multicast_SendLocation_Implementation(const FVector& LocationToSend, float DeltaTime)
 {
@@ -341,13 +353,11 @@ void AFGPlayer::Server_SendYaw_Implementation(float NewYaw)
 
 void AFGPlayer::Handle_Acceleration(float Value)
 {
-	GEngine->AddOnScreenDebugMessage(-10, 1.f, FColor::Green, FString::Printf(TEXT("Forward: %f"), Forward));
 	Forward = Value;
 }
 
 void AFGPlayer::Handle_Turn(float Value)
 {
-	GEngine->AddOnScreenDebugMessage(-10, 1.f, FColor::Green, FString::Printf(TEXT("Turn: %f"), Forward));
 	Turn = Value;
 }
 
@@ -469,7 +479,6 @@ void AFGPlayer::AddMovementVelocity(float DeltaTime)
 
 	MovementVelocity += Forward * Acceleration * DeltaTime;
 	MovementVelocity = FMath::Clamp(MovementVelocity, -MaxVelocity, MaxVelocity);
-	//UE_LOG(LogTemp, Warning, TEXT("MovementVelocity: %f"), MovementVelocity);
 }
 
 void AFGPlayer::CreateDebugWidget()

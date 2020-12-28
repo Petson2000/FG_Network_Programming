@@ -46,6 +46,9 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UFUNCTION()
+	void OnHit(float DamageAmount);
+
 	UFUNCTION(Client, Reliable)
 	void Client_OnPickupRockets(int32 PickedUpRockets);
 
@@ -63,6 +66,9 @@ public:
 	
 	UFUNCTION(Server, Unreliable)
 	void Server_SendYaw(float NewYaw);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_OnNumRocketsChanged(int32 NewRocketAmount);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_SendLocation(const FVector& LocationToSend, float DeltaTime);
@@ -96,6 +102,9 @@ public:
 
 	UPROPERTY(Replicated)
 	float CurrentHealth = 0.0f;
+
+	UPROPERTY(Replicated, Transient, BlueprintReadOnly)
+		TArray<AFGRocket*> RocketInstances;
 
 private:
 
@@ -134,8 +143,7 @@ private:
 
 private:
 
-	UPROPERTY(Replicated, Transient)
-	TArray<AFGRocket*> RocketInstances;
+
 	
 	UPROPERTY(EditAnywhere, Category = Weapon)
 	TSubclassOf<AFGRocket> RocketClass;

@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "FGRocket.generated.h"
 
+class AFGPlayer;
+
 UCLASS()
 class FGNET_API AFGRocket : public AActor
 {
@@ -29,6 +31,7 @@ public:
 	void MakeFree();
 
 public:
+
 	UPROPERTY(EditAnywhere, Category = Damage, meta = (ClampMin = 1.0f))
 	float DamageAmount = 2.0f;
 

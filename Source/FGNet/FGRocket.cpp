@@ -6,6 +6,7 @@
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "FGNet/Player/FGPlayer.h"
 
 // Sets default values
 AFGRocket::AFGRocket()
@@ -64,6 +65,15 @@ void AFGRocket::Tick(float DeltaTime)
 	const FVector StartLocation = NewLocation;
 	const FVector EndLocation = StartLocation + FacingRotationStart * 100.0f;
 	GetWorld()->LineTraceSingleByChannel(Hit, StartLocation, EndLocation, ECC_Visibility, CachedCollisionQueryParams);
+
+	if (Cast<AFGPlayer>(Hit.Actor))
+	{
+		AFGPlayer* HitPlayer;
+		HitPlayer = Cast<AFGPlayer>(Hit.Actor);
+		HitPlayer->OnHit(DamageAmount);
+		Explode();
+		return;
+	}
 
 	if (Hit.bBlockingHit)
 	{
