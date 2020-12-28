@@ -25,8 +25,6 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
-
 	UPROPERTY(EditAnywhere, Category = Settings)
 	UFGPlayerSettings* PlayerSettings = nullptr;
 	
@@ -40,6 +38,8 @@ public:
 	int32 GetPing() const;
 
 	void OnPickup(AFGPickup* Pickup);
+
+	void OnTakeDamage(float DamageAmount);
 
 	UFUNCTION(Server, Reliable)
 	void Server_OnPickup(AFGPickup* Pickup);
@@ -92,6 +92,11 @@ public:
 
 	void SpawnRockets();
 
+public:
+
+	UPROPERTY(Replicated)
+	float CurrentHealth = 0.0f;
+
 private:
 
 	void AddMovementVelocity(float DeltaTime);
@@ -139,8 +144,7 @@ private:
 
 	float FireCooldownElapsed = 0.0f;
 
-	UPROPERTY(Replicated)
-	float CurrentHealth = 0.0f;
+
 
 	UPROPERTY(EditAnywhere, Category = Weapon)
 	bool bUnlimitedRockets = false;

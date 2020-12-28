@@ -65,14 +65,6 @@ void AFGRocket::Tick(float DeltaTime)
 	const FVector EndLocation = StartLocation + FacingRotationStart * 100.0f;
 	GetWorld()->LineTraceSingleByChannel(Hit, StartLocation, EndLocation, ECC_Visibility, CachedCollisionQueryParams);
 
-	if (Cast<APawn>(Hit.Actor) && Hit.Actor != GetOwner())
-	{
-		FDamageEvent DamageEvent;
-
-		Cast<APawn>(Hit.Actor)->TakeDamage(DamageAmount, DamageEvent, Hit.Actor->GetInstigatorController(), this);
-		Explode();
-	}
-
 	if (Hit.bBlockingHit)
 	{
 		Explode();

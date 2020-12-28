@@ -93,27 +93,27 @@ void AFGPlayer::Tick(float DeltaTime)
 
 	if (IsLocallyControlled())
 	{
-		ClientTimeStamp += DeltaTime; 
+		ClientTimeStamp += DeltaTime;
 
 		const float MaxVelocity = PlayerSettings->MaxVelocity;
 		const float Friction = IsBraking() ? PlayerSettings->BrakingFriction : PlayerSettings->Friction;
 		const float Alpha = FMath::Clamp(FMath::Abs(MovementVelocity / (PlayerSettings->MaxVelocity * 0.75f)), 0.0f, 1.0f);
 		const float TurnSpeed = FMath::InterpEaseOut(0.0f, PlayerSettings->TurnSpeedDefault, Alpha, 5.0f);
 		const float MovementDirection = MovementVelocity > 0.0f ? Turn : -Turn;
-	
+
 		Yaw += (MovementDirection * TurnSpeed) * DeltaTime;
 		FQuat WantedFacingDirection = FQuat(FVector::UpVector, FMath::DegreesToRadians(Yaw));
 		MovementComponent->SetFacingRotation(WantedFacingDirection);
-	
+
 		AddMovementVelocity(DeltaTime);
 		MovementVelocity *= FMath::Pow(Friction, DeltaTime);
-	
+
 		UE_LOG(LogTemp, Warning, TEXT("Movement Velocity: %f"), MovementVelocity);
 
 		MovementComponent->ApplyGravity();
 		FrameMovement.AddDelta(GetActorForwardVector() * MovementVelocity * DeltaTime);
 		MovementComponent->Move(FrameMovement);
-		
+
 		Server_SendMovement(GetActorLocation(), ClientTimeStamp, Forward, GetActorRotation().Yaw);
 	}
 
@@ -130,14 +130,6 @@ void AFGPlayer::Tick(float DeltaTime)
 			MeshComponent->SetRelativeLocation(NewRelativeLocation, false, nullptr, ETeleportType::TeleportPhysics);
 		}
 	}
-}
-
-float AFGPlayer::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
-{
-	CurrentHealth -= DamageAmount;
-	Server_OnHealthChanged(DamageAmount);
-
-	return CurrentHealth;
 }
 
 void AFGPlayer::SpawnRockets()
@@ -183,18 +175,22 @@ void AFGPlayer::OnPickup(AFGPickup* Pickup)
 	}
 }
 
+void AFGPlayer::OnTakeDamage(float DamageAmount)
+{
+	CurrentHealth -= DamageAmount;
+	Server_OnHealthChanged(CurrentHealth);
+}
+
 void AFGPlayer::Server_OnHealthChanged_Implementation(float DamageAmount)
 {
-	if (IsLocallyControlled())
-	{
-		BP_OnHealthChanged(CurrentHealth);
-	}
-
-	Multicast_OnHealthChanged();
+	Multicast_OnHealthChanged(CurrentHealth);
+	BP_OnHealthChanged(CurrentHealth);
 }
 
 void AFGPlayer::Multicast_OnHealthChanged_Implementation(float DamageAmount)
 {
+	 //Store health!!
+	CurrentHealth -= DamageAmount;
 	BP_OnHealthChanged(CurrentHealth);
 }
 
@@ -252,7 +248,7 @@ void AFGPlayer::Multicast_SendMovement_Implementation(const FVector& InClientLoc
 				MovementComponent->UpdatedComponent->SetWorldLocation(InClientLocation, false, nullptr, ETeleportType::TeleportPhysics);
 				LastCorrectionDelta = DeltaTime;
 			}
-		
+
 			else
 			{
 				SetActorLocation(InClientLocation);
@@ -387,8 +383,7 @@ void AFGPlayer::Handle_FirePressed()
 
 void AFGPlayer::Cheat_DecreaseHealthOnPlayer()
 {
-	FDamageEvent E;
-	TakeDamage(5.0f, E, GetInstigatorController(), this);
+	OnTakeDamage(CurrentHealth);
 }
 
 void AFGPlayer::ShowDebugMenu()
