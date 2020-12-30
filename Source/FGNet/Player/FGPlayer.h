@@ -12,6 +12,7 @@ class UFGPlayerSettings;
 class UFGNetDebugWidget;
 class AFGPickup;
 class AFGRocket;
+class UShootingComponent;
 
 UCLASS()
 class FGNET_API AFGPlayer : public APawn
@@ -27,7 +28,7 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = Settings)
 	UFGPlayerSettings* PlayerSettings = nullptr;
-	
+
 	UPROPERTY(EditAnywhere, Category = Debug)
 	TSubclassOf<UFGNetDebugWidget> DebugMenuClass;
 
@@ -104,7 +105,7 @@ public:
 	float CurrentHealth = 0.0f;
 
 	UPROPERTY(Replicated, Transient, BlueprintReadOnly)
-		TArray<AFGRocket*> RocketInstances;
+	TArray<AFGRocket*> RocketInstances;
 
 private:
 
@@ -118,6 +119,9 @@ private:
 	void Handle_BrakeReleased();
 	void Handle_DebugMenuPressed();
 	void Handle_FirePressed();
+
+	/* Attempts to get shooting component on this actor, else returns nullptr*/
+	UShootingComponent* TryGetShootingComponent();
 
 	FVector GetRocketStartLocation() const;
 	AFGRocket* GetFreeRocket() const;
@@ -142,17 +146,14 @@ private:
 	
 
 private:
+	UShootingComponent* ShootComp;
 
-
-	
 	UPROPERTY(EditAnywhere, Category = Weapon)
 	TSubclassOf<AFGRocket> RocketClass;
 
 	int32 MaxActiveRockets = 50;
 
 	float FireCooldownElapsed = 0.0f;
-
-
 
 	UPROPERTY(EditAnywhere, Category = Weapon)
 	bool bUnlimitedRockets = false;
