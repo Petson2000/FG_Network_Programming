@@ -13,7 +13,6 @@
 #include "../Debug/UI/FGNetDebugWidget.h"
 #include "../FGPickup.h"
 #include "../FGRocket.h"
-#include "../Components/ShootingComponent.h"
 
 const static float MaxMoveDeltaTime = 0.125f;
 
@@ -36,9 +35,6 @@ AFGPlayer::AFGPlayer()
 
 	MovementComponent = CreateDefaultSubobject<UFGMovementComponent>(TEXT("MovementComponent"));
 
-	ShootComp = TryGetShootingComponent();
-
-
 	SetReplicateMovement(false);
 }
 
@@ -60,11 +56,8 @@ void AFGPlayer::BeginPlay()
 	{
 		DebugMenuInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
-	
-	if (ShootComp != nullptr)
-	{
-		SpawnRockets();
-	}
+
+	SpawnRockets();
 
 	BP_OnHealthChanged(CurrentHealth);
 	BP_OnNumRocketsChanged(NumRockets);
@@ -145,16 +138,19 @@ void AFGPlayer::Tick(float DeltaTime)
 
 void AFGPlayer::SpawnRockets()
 {
-	if (ShootComp != nullptr)
+	if (HasAuthority() && RocketClass != nullptr)
 	{
-		if (HasAuthority() && RocketClass != nullptr)
+		const int32 RocketCache = 8;
+
+		for (int32 Index = 0; Index < RocketCache; Index++)
 		{
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 			SpawnParams.ObjectFlags = RF_Transient;
 			SpawnParams.Instigator = this;
 			SpawnParams.Owner = this;
-			ShootComp->SpawnRockets(SpawnParams);
+			AFGRocket* NewRocketInstance = GetWorld()->SpawnActor<AFGRocket>(RocketClass, GetActorLocation(), GetActorRotation(), SpawnParams);
+			RocketInstances.Add(NewRocketInstance);
 		}
 	}
 }
@@ -296,20 +292,6 @@ void AFGPlayer::Multicast_FireRocket_Implementation(AFGRocket* NewRocket, const 
 	}
 }
 
-UShootingComponent* AFGPlayer::TryGetShootingComponent()
-{
-	TArray<UShootingComponent*> comps;
-
-	GetComponents(comps);
-
-	if (comps.Num() <= 0)
-	{
-		return nullptr;
-	}
-
-	return comps[0];
-}
-
 FVector AFGPlayer::GetRocketStartLocation() const
 {
 	const FVector StartLocation = GetActorLocation() + GetActorForwardVector() * 100.0f;
@@ -406,10 +388,7 @@ void AFGPlayer::Handle_DebugMenuPressed()
 
 void AFGPlayer::Handle_FirePressed()
 {
-	if (ShootComp != nullptr)
-	{
-		FireRocket();
-	}
+	FireRocket();
 }
 
 void AFGPlayer::Cheat_DecreaseHealthOnPlayer()
@@ -528,4 +507,5 @@ void AFGPlayer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	DOREPLIFETIME(AFGPlayer, ReplicatedYaw);
 	DOREPLIFETIME(AFGPlayer, CurrentHealth);
 	DOREPLIFETIME(AFGPlayer, ReplicatedLocation);
+	DOREPLIFETIME(AFGPlayer, RocketInstances);
 }
