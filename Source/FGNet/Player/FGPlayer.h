@@ -11,7 +11,7 @@ class USphereComponent;
 class UFGPlayerSettings;
 class UFGNetDebugWidget;
 class AFGPickup;
-class AFGRocket;
+class UFGRocket;
 
 UCLASS()
 class FGNET_API AFGPlayer : public APawn
@@ -104,7 +104,7 @@ public:
 	float CurrentHealth = 0.0f;
 
 	UPROPERTY(Replicated, Transient, BlueprintReadOnly)
-		TArray<AFGRocket*> RocketInstances;
+	TArray<UFGRocket*> RocketInstances;
 
 private:
 
@@ -120,16 +120,16 @@ private:
 	void Handle_FirePressed();
 
 	FVector GetRocketStartLocation() const;
-	AFGRocket* GetFreeRocket() const;
+	UFGRocket* GetFreeRocket() const;
 
 	UFUNCTION(Server, Reliable)
-	void Server_FireRocket(AFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation);
+	void Server_FireRocket(UFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation);
 	
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_FireRocket(AFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation);
+	void Multicast_FireRocket(UFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation);
 	
 	UFUNCTION(Client, Reliable)
-	void Client_RemoveRocket(AFGRocket* RocketToRemove);
+	void Client_RemoveRocket(UFGRocket* RocketToRemove);
 	
 	UFUNCTION(BlueprintCallable)
 	void Cheat_IncreaseRockets(int32 InNumRockets);
@@ -146,7 +146,7 @@ private:
 
 	
 	UPROPERTY(EditAnywhere, Category = Weapon)
-	TSubclassOf<AFGRocket> RocketClass;
+	TSubclassOf<UFGRocket> RocketClass;
 
 	int32 MaxActiveRockets = 50;
 

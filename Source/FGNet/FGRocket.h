@@ -9,16 +9,18 @@
 class AFGPlayer;
 
 UCLASS()
-class FGNET_API AFGRocket : public AActor
+class FGNET_API UFGRocket : public UPrimitiveComponent
 {
 	GENERATED_BODY()
 	
 public:	
-	AFGRocket();
+	UFGRocket();
 
 	virtual void BeginPlay() override;
 
-	virtual void Tick(float DeltaTime) override;
+	//virtual void Tick(float DeltaTime) override;
+
+	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void StartMoving(const FVector& Forward, const FVector& InStartLocation);
 
@@ -50,6 +52,9 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 	UStaticMeshComponent* MeshComponent = nullptr;
 
+	UPROPERTY(VisibleDefaultsOnly, Category = Root)
+	USceneComponent* RootComponent;
+
 	UPROPERTY(EditAnywhere, Category = Debug)
 	bool bDebugDrawCorrection = true;
 
@@ -60,7 +65,6 @@ private:
 	FQuat FacingRotationCorrection = FQuat::Identity;
 
 	FVector RocketStartLocation = FVector::ZeroVector;
-
 
 	float LifeTime = 2.0f;
 	float LifeTimeElapsed = 0.0f;

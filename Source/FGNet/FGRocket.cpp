@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "FGRocket.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
@@ -9,10 +6,10 @@
 #include "FGNet/Player/FGPlayer.h"
 
 // Sets default values
-AFGRocket::AFGRocket()
+UFGRocket::UFGRocket()
 {
-	PrimaryActorTick.bStartWithTickEnabled = false;
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+	PrimaryComponentTick.bCanEverTick = true;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneCompRoot"));
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
@@ -20,27 +17,24 @@ AFGRocket::AFGRocket()
 	MeshComponent->SetGenerateOverlapEvents(false);
 	MeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
 
-	SetReplicates(true);
+	SetIsReplicatedByDefault(true);
 }
 
-// Called when the game starts or when spawned
-void AFGRocket::BeginPlay()
+void UFGRocket::BeginPlay()
 {
 	Super::BeginPlay();
 
-	CachedCollisionQueryParams.AddIgnoredActor(this);
-
+	CachedCollisionQueryParams.AddIgnoredComponent(this);
 	SetRocketVisibility(false);
 }
 
-// Called every frame
-void AFGRocket::Tick(float DeltaTime)
+void UFGRocket::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	Super::Tick(DeltaTime);
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	LifeTimeElapsed -= DeltaTime;
 	DistanceMoved += MovementVelocity * DeltaTime;
-	
+
 	FacingRotationStart = FQuat::Slerp(FacingRotationStart.ToOrientationQuat(), FacingRotationCorrection, 0.9f * DeltaTime).Vector();
 
 #if !UE_BUILD_SHIPPING
@@ -58,10 +52,10 @@ void AFGRocket::Tick(float DeltaTime)
 
 	const FVector NewLocation = RocketStartLocation + FacingRotationStart * DistanceMoved;
 
-	SetActorLocation(NewLocation);
+	SetRelativeLocation(NewLocation);
 
 	FHitResult Hit;
-	
+
 	const FVector StartLocation = NewLocation;
 	const FVector EndLocation = StartLocation + FacingRotationStart * 100.0f;
 	GetWorld()->LineTraceSingleByChannel(Hit, StartLocation, EndLocation, ECC_Visibility, CachedCollisionQueryParams);
@@ -86,44 +80,44 @@ void AFGRocket::Tick(float DeltaTime)
 	}
 }
 
-void AFGRocket::StartMoving(const FVector& Forward, const FVector& InStartLocation)
+void UFGRocket::StartMoving(const FVector& Forward, const FVector& InStartLocation)
 {
 	FacingRotationStart = Forward;
 	FacingRotationCorrection = FacingRotationStart.ToOrientationQuat();
 	RocketStartLocation = InStartLocation;
-	SetActorLocationAndRotation(InStartLocation, Forward.Rotation());
+	SetRelativeLocation(InStartLocation);
+	SetRelativeRotation(Forward.Rotation());
 	bIsFree = false;
-	SetActorTickEnabled(true);
+	SetComponentTickEnabled(true);
 	SetRocketVisibility(true);
 	LifeTimeElapsed = LifeTime;
 	DistanceMoved = 0.0f;
 	OriginalFacingDirection = FacingRotationStart;
 }
 
-
-void AFGRocket::ApplyCorrection(const FVector& Forward)
+void UFGRocket::ApplyCorrection(const FVector& Forward)
 {
 	FacingRotationCorrection = Forward.ToOrientationQuat();
 }
 
-void AFGRocket::Explode()
+void UFGRocket::Explode()
 {
 	if (Explosion != nullptr)
 	{
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Explosion, GetActorLocation(), GetActorRotation(), true);
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Explosion, GetRelativeLocation(), GetRelativeRotation(), true);
 	}
 
 	MakeFree();
 }
 
-void AFGRocket::MakeFree()
+void UFGRocket::MakeFree()
 {
 	bIsFree = true;
-	SetActorTickEnabled(false);
+	SetComponentTickEnabled(false);
 	SetRocketVisibility(false);
 }
 
-void AFGRocket::SetRocketVisibility(bool bVisible)
+void UFGRocket::SetRocketVisibility(bool bIsVisible)
 {
-	RootComponent->SetVisibility(bVisible, true);
+	RootComponent->SetVisibility(bIsVisible, true);
 }

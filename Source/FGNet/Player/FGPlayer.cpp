@@ -144,13 +144,15 @@ void AFGPlayer::SpawnRockets()
 
 		for (int32 Index = 0; Index < RocketCache; Index++)
 		{
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-			SpawnParams.ObjectFlags = RF_Transient;
-			SpawnParams.Instigator = this;
-			SpawnParams.Owner = this;
-			AFGRocket* NewRocketInstance = GetWorld()->SpawnActor<AFGRocket>(RocketClass, GetActorLocation(), GetActorRotation(), SpawnParams);
-			RocketInstances.Add(NewRocketInstance);
+			FName RocketName("Rocket_" + Index);
+
+			UFGRocket* Rocket = NewObject<UFGRocket>(RocketClass, RocketName);
+
+			if (Rocket && GetWorld() != nullptr)
+			{
+				RocketInstances.Add(Rocket);
+				Rocket->RegisterComponentWithWorld(GetWorld());
+			}
 		}
 	}
 }
@@ -209,7 +211,7 @@ void AFGPlayer::Multicast_OnNumRocketsChanged_Implementation(int32 NewRocketAmou
 	BP_OnNumRocketsChanged(NewRocketAmount);
 }
 
-void AFGPlayer::Server_FireRocket_Implementation(AFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation)
+void AFGPlayer::Server_FireRocket_Implementation(UFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation)
 {
 	if ((ServerNumRockets - 1) < 0 && !bUnlimitedRockets)
 	{
@@ -226,7 +228,7 @@ void AFGPlayer::Server_FireRocket_Implementation(AFGRocket* NewRocket, const FVe
 	}
 }
 
-void AFGPlayer::Client_RemoveRocket_Implementation(AFGRocket* RocketToRemove)
+void AFGPlayer::Client_RemoveRocket_Implementation(UFGRocket* RocketToRemove)
 {
 	RocketToRemove->MakeFree();
 }
@@ -273,7 +275,7 @@ void AFGPlayer::Multicast_SendMovement_Implementation(const FVector& InClientLoc
 	}
 }
 
-void AFGPlayer::Multicast_FireRocket_Implementation(AFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation)
+void AFGPlayer::Multicast_FireRocket_Implementation(UFGRocket* NewRocket, const FVector& RocketStartLocation, const FRotator& RocketFacingRotation)
 {
 	if (!ensure(NewRocket != nullptr))
 	{
@@ -298,9 +300,9 @@ FVector AFGPlayer::GetRocketStartLocation() const
 	return StartLocation;
 }
 
-AFGRocket* AFGPlayer::GetFreeRocket() const
+UFGRocket* AFGPlayer::GetFreeRocket() const
 {
-	for (AFGRocket* Rocket : RocketInstances)
+	for (UFGRocket* Rocket : RocketInstances)
 	{
 		if (Rocket == nullptr)
 		{
@@ -442,7 +444,7 @@ void AFGPlayer::FireRocket()
 		return;
 	}
 
-	AFGRocket* NewRocket = GetFreeRocket();
+	UFGRocket* NewRocket = GetFreeRocket();
 
 	if (!ensure(NewRocket != nullptr))
 	{
