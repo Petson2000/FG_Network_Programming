@@ -103,7 +103,7 @@ public:
 	UPROPERTY(Replicated)
 	float CurrentHealth = 0.0f;
 
-	UPROPERTY(Replicated, Transient, BlueprintReadOnly)
+	UPROPERTY(Replicated, /*Transient,*/ BlueprintReadWrite, Category = Weapon)
 	TArray<UFGRocket*> RocketInstances;
 
 private:
@@ -142,17 +142,16 @@ private:
 	
 
 private:
-
-
 	
 	UPROPERTY(EditAnywhere, Category = Weapon)
 	TSubclassOf<UFGRocket> RocketClass;
 
+	UPROPERTY(EditAnywhere, Category = Weapon)
+	bool bSpawnWithRockets = true;
+
 	int32 MaxActiveRockets = 50;
 
 	float FireCooldownElapsed = 0.0f;
-
-
 
 	UPROPERTY(EditAnywhere, Category = Weapon)
 	bool bUnlimitedRockets = false;
@@ -169,7 +168,6 @@ private:
 	int32 ServerNumRockets = 0;
 
 	int32 NumRockets = 0;
-
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Collision")
 	USphereComponent* CollisionComponent;

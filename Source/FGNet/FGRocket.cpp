@@ -5,7 +5,6 @@
 #include "DrawDebugHelpers.h"
 #include "FGNet/Player/FGPlayer.h"
 
-// Sets default values
 UFGRocket::UFGRocket()
 {
 	PrimaryComponentTick.bStartWithTickEnabled = false;
@@ -17,13 +16,13 @@ UFGRocket::UFGRocket()
 	MeshComponent->SetGenerateOverlapEvents(false);
 	MeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
 
+	SetUsingAbsoluteLocation(true);
 	SetIsReplicatedByDefault(true);
 }
 
 void UFGRocket::BeginPlay()
 {
 	Super::BeginPlay();
-
 	CachedCollisionQueryParams.AddIgnoredComponent(this);
 	SetRocketVisibility(false);
 }
@@ -35,7 +34,7 @@ void UFGRocket::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 	LifeTimeElapsed -= DeltaTime;
 	DistanceMoved += MovementVelocity * DeltaTime;
 
-	FacingRotationStart = FQuat::Slerp(FacingRotationStart.ToOrientationQuat(), FacingRotationCorrection, 0.9f * DeltaTime).Vector();
+	FacingRotationStart = FQuat::Slerp(FacingRotationStart.ToOrientationQuat(), FacingRotationCorrection, 0.9f * DeltaTime).Vector(); 
 
 #if !UE_BUILD_SHIPPING
 
@@ -52,8 +51,7 @@ void UFGRocket::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 
 	const FVector NewLocation = RocketStartLocation + FacingRotationStart * DistanceMoved;
 
-	SetRelativeLocation(NewLocation);
-
+	SetWorldLocation(NewLocation);
 	FHitResult Hit;
 
 	const FVector StartLocation = NewLocation;
@@ -85,11 +83,15 @@ void UFGRocket::StartMoving(const FVector& Forward, const FVector& InStartLocati
 	FacingRotationStart = Forward;
 	FacingRotationCorrection = FacingRotationStart.ToOrientationQuat();
 	RocketStartLocation = InStartLocation;
-	SetRelativeLocation(InStartLocation);
-	SetRelativeRotation(Forward.Rotation());
+
+	SetWorldLocationAndRotation(InStartLocation, Forward.Rotation());
+
+	//SetRelativeLocation(InStartLocation);
+	//SetRelativeRotation(Forward.Rotation());
+
 	bIsFree = false;
 	SetComponentTickEnabled(true);
-	SetRocketVisibility(true);
+	//SetRocketVisibility(true);
 	LifeTimeElapsed = LifeTime;
 	DistanceMoved = 0.0f;
 	OriginalFacingDirection = FacingRotationStart;
@@ -112,9 +114,10 @@ void UFGRocket::Explode()
 
 void UFGRocket::MakeFree()
 {
+	//Disable Mesh
 	bIsFree = true;
 	SetComponentTickEnabled(false);
-	SetRocketVisibility(false);
+	//SetRocketVisibility(false);
 }
 
 void UFGRocket::SetRocketVisibility(bool bIsVisible)

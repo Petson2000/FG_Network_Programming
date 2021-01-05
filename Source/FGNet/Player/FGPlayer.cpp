@@ -32,9 +32,7 @@ AFGPlayer::AFGPlayer()
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(SpringArmComponent);
-
 	MovementComponent = CreateDefaultSubobject<UFGMovementComponent>(TEXT("MovementComponent"));
-
 	SetReplicateMovement(false);
 }
 
@@ -47,17 +45,18 @@ void AFGPlayer::BeginPlay()
 		return;
 	}
 
+	SpawnRockets();
+
 	CurrentHealth = PlayerSettings->MaxHealth;
 
 	MovementComponent->SetUpdatedComponent(CollisionComponent);
 
 	CreateDebugWidget();
+
 	if (DebugMenuInstance != nullptr)
 	{
 		DebugMenuInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
-
-	SpawnRockets();
 
 	BP_OnHealthChanged(CurrentHealth);
 	BP_OnNumRocketsChanged(NumRockets);
@@ -112,7 +111,6 @@ void AFGPlayer::Tick(float DeltaTime)
 		AddMovementVelocity(DeltaTime);
 		MovementVelocity *= FMath::Pow(Friction, DeltaTime);
 
-		UE_LOG(LogTemp, Warning, TEXT("Movement Velocity: %f"), MovementVelocity);
 
 		MovementComponent->ApplyGravity();
 		FrameMovement.AddDelta(GetActorForwardVector() * MovementVelocity * DeltaTime);
@@ -144,14 +142,15 @@ void AFGPlayer::SpawnRockets()
 
 		for (int32 Index = 0; Index < RocketCache; Index++)
 		{
-			FName RocketName("Rocket_" + Index);
+			UFGRocket* Rocket = NewObject<UFGRocket>(RocketClass);
 
-			UFGRocket* Rocket = NewObject<UFGRocket>(RocketClass, RocketName);
-
-			if (Rocket && GetWorld() != nullptr)
+			if (Rocket != nullptr && GetWorld() != nullptr)
 			{
-				RocketInstances.Add(Rocket);
+				Rocket->SetAbsolute(true);
+				Rocket->SetWorldLocation(GetActorLocation());
 				Rocket->RegisterComponentWithWorld(GetWorld());
+				Rocket->AttachTo(RootComponent);
+				RocketInstances.Add(Rocket);
 			}
 		}
 	}
@@ -169,7 +168,7 @@ int32 AFGPlayer::GetPing() const
 
 void AFGPlayer::Client_OnPickupRockets_Implementation(int32 PickedUpRockets)
 {
-	NumRockets += PickedUpRockets;
+	//NumRockets += PickedUpRockets;
 	BP_OnNumRocketsChanged(NumRockets);
 }
 
@@ -189,7 +188,7 @@ void AFGPlayer::OnPickup(AFGPickup* Pickup)
 
 void AFGPlayer::OnTakeDamage(float DamageAmount)
 {
-	CurrentHealth -= DamageAmount;
+	//CurrentHealth -= DamageAmount;
 	Server_OnHealthChanged(CurrentHealth);
 }
 
@@ -201,7 +200,6 @@ void AFGPlayer::Server_OnHealthChanged_Implementation(float DamageAmount)
 
 void AFGPlayer::Multicast_OnHealthChanged_Implementation(float DamageAmount)
 {
-	 //Store health!!
 	CurrentHealth -= DamageAmount;
 	BP_OnHealthChanged(CurrentHealth);
 }
@@ -317,8 +315,6 @@ UFGRocket* AFGPlayer::GetFreeRocket() const
 
 	return nullptr;
 }
-
-
 
 void AFGPlayer::Multicast_SendLocation_Implementation(const FVector& LocationToSend, float DeltaTime)
 {

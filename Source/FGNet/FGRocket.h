@@ -18,8 +18,6 @@ public:
 
 	virtual void BeginPlay() override;
 
-	//virtual void Tick(float DeltaTime) override;
-
 	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void StartMoving(const FVector& Forward, const FVector& InStartLocation);
@@ -33,24 +31,20 @@ public:
 	void MakeFree();
 
 public:
-
 	UPROPERTY(EditAnywhere, Category = Damage, meta = (ClampMin = 1.0f))
 	float DamageAmount = 2.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mesh)
+	UStaticMeshComponent* MeshComponent = nullptr;
 
 private:
-
 	void SetRocketVisibility(bool bVisible);
 
 private:
-
 	FCollisionQueryParams CachedCollisionQueryParams;
 
 	UPROPERTY(EditAnywhere, Category = VFX)
 	UParticleSystem* Explosion = nullptr;
-
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-	UStaticMeshComponent* MeshComponent = nullptr;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Root)
 	USceneComponent* RootComponent;
