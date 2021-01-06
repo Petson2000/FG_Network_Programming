@@ -93,6 +93,7 @@ void AFGPlayer::Tick(float DeltaTime)
 	FireCooldownElapsed -= DeltaTime;
 
 	FFGFrameMovement FrameMovement = MovementComponent->CreateFrameMovement();
+	FGMovementData MovementData;
 
 	if (IsLocallyControlled())
 	{
@@ -111,12 +112,16 @@ void AFGPlayer::Tick(float DeltaTime)
 		AddMovementVelocity(DeltaTime);
 		MovementVelocity *= FMath::Pow(Friction, DeltaTime);
 
+		MovementData.Yaw = GetActorRotation().Yaw;
 
 		MovementComponent->ApplyGravity();
 		FrameMovement.AddDelta(GetActorForwardVector() * MovementVelocity * DeltaTime);
-		MovementComponent->Move(FrameMovement);
 
-		Server_SendMovement(GetActorLocation(), ClientTimeStamp, Forward, GetActorRotation().Yaw);
+		if (MovementData.NetSerialize(MovementData.Archive, MovementData.Map, MovementData.bFinishedLoading))
+		{
+			MovementComponent->Move(FrameMovement);
+			Server_SendMovement(GetActorLocation(), ClientTimeStamp, Forward, GetActorRotation().Yaw, MovementData);
+		}
 	}
 
 	else
@@ -239,20 +244,28 @@ void AFGPlayer::Cheat_IncreaseRockets(int32 InNumRockets)
 	}
 }
 
-void AFGPlayer::Server_SendMovement_Implementation(const FVector& ClientLocation, float TimeStamp, float ClientForward, float ClientYaw)
+void AFGPlayer::Server_SendMovement_Implementation(const FVector& ClientLocation, float TimeStamp, float ClientForward, float ClientYaw, FGMovementData MovementData)
 {
-	Multicast_SendMovement(ClientLocation, TimeStamp, ClientForward, ClientYaw);
+	Multicast_SendMovement(ClientLocation, TimeStamp, ClientForward, ClientYaw, MovementData);
 }
 
-void AFGPlayer::Multicast_SendMovement_Implementation(const FVector& InClientLocation, float TimeStamp, float ClientForward, float ClientYaw)
+void AFGPlayer::Multicast_SendMovement_Implementation(const FVector& InClientLocation, float TimeStamp, float ClientForward, float ClientYaw, FGMovementData MovementData)
 {
 	if (!IsLocallyControlled())
 	{
+		MovementData.NetSerialize(MovementData.Archive, MovementData.Map, MovementData.bFinishedLoading);
+
 		Forward = ClientForward;
 		const float DeltaTime = FMath::Min(TimeStamp - ClientTimeStamp, MaxMoveDeltaTime);
 		ClientTimeStamp = TimeStamp;
 		AddMovementVelocity(DeltaTime);
-		MovementComponent->SetFacingRotation(FRotator(0.0f, ClientYaw, 0.0f));
+	
+		if (MovementData.Yaw != 0.0f)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Net Serialized Yaw: %f"), MovementData.Yaw));
+		}
+
+		MovementComponent->SetFacingRotation(FRotator(0.0f, MovementData.Yaw, 0.0f));
 
 		const FVector DeltaDiff = InClientLocation - GetActorLocation();
 

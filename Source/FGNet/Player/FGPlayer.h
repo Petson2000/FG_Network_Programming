@@ -12,6 +12,68 @@ class UFGPlayerSettings;
 class UFGNetDebugWidget;
 class AFGPickup;
 class UFGRocket;
+struct FGMovementData;
+
+USTRUCT()
+struct FGMovementData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FArchive Archive;
+	UPackageMap* Map = nullptr;
+	bool bFinishedLoading = false;
+
+	float Yaw = 0.0f;
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* PackageMap, bool& bOutSuccess)
+	{
+		SerializeCompressed(Ar);
+		FRotator Rot;
+		bOutSuccess = true;
+		return true;
+	}
+
+private:
+
+	void SerializeCompressed(FArchive& Ar)
+	{
+		const bool bArLoading = Ar.IsLoading();
+
+		uint8 ByteYaw = 0;
+
+		if (!bArLoading)
+		{
+			ByteYaw = FRotator::CompressAxisToByte(Yaw);
+		}
+
+		uint8 B = (ByteYaw != 0);
+		Ar.SerializeBits(&B, 1);
+
+		if (B)
+		{
+			Ar << ByteYaw;
+		}
+
+		else
+		{
+			ByteYaw = 0;
+		}
+
+		if (bArLoading)
+		{
+			Yaw = FRotator::DecompressAxisFromByte(ByteYaw);
+		}
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FGMovementData> : public TStructOpsTypeTraitsBase2<FGMovementData>
+{
+	enum
+	{
+		WithNetSerializer = true,
+	};
+};
 
 UCLASS()
 class FGNET_API AFGPlayer : public APawn
@@ -135,10 +197,10 @@ private:
 	void Cheat_IncreaseRockets(int32 InNumRockets);
 
 	UFUNCTION(Server, Unreliable)
-	void Server_SendMovement(const FVector& ClientLocation, float TimeStamp, float ClientForward, float ClientYaw);
+	void Server_SendMovement(const FVector& ClientLocation, float TimeStamp, float ClientForward, float ClientYaw, FGMovementData MovementData);
 
 	UFUNCTION(NetMulticast, Unreliable)
-	void Multicast_SendMovement(const FVector& InClientLocation, float TimeStamp, float ClientForward, float ClientYaw);
+	void Multicast_SendMovement(const FVector& InClientLocation, float TimeStamp, float ClientForward, float ClientYaw, FGMovementData MovementData);
 	
 
 private:

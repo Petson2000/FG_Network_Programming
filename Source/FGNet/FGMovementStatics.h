@@ -20,6 +20,8 @@ struct FFGFrameMovement
 
 	FVector FinalLocation = FVector::ZeroVector;
 
+	float Yaw = 0.0f;
+
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
 private:
@@ -28,15 +30,5 @@ private:
 
 	FVector MovementDelta = FVector::ZeroVector;
 	FVector StartLocation = FVector::ZeroVector;
-
-};
-
-struct FFGMovementData
-{
-	FVector FinalLocation = FVector::ZeroVector;
-	FRotator TargetRotation = FRotator::ZeroRotator;
-
-	float speed = 0.0f;
-	float Yaw = 0.0f;
 
 };
