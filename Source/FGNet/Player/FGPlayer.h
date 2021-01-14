@@ -12,16 +12,11 @@ class UFGPlayerSettings;
 class UFGNetDebugWidget;
 class AFGPickup;
 class UFGRocket;
-struct FGMovementData;
 
 USTRUCT()
 struct FGMovementData
 {
 	GENERATED_USTRUCT_BODY()
-
-	FArchive Archive;
-	UPackageMap* Map = nullptr;
-	bool bFinishedLoading = false;
 
 	float Yaw = 0.0f;
 
@@ -121,22 +116,10 @@ public:
 	void Multicast_OnHealthChanged(float DamageAmount);
 
 	UFUNCTION(Server, Unreliable)
-	void Server_SendLocation(const FVector& LocationToSend, float DeltaTime);
-
-	UFUNCTION(Server, Unreliable)
-	void Server_SendRotation(const FRotator& LocationToSend, float DeltaTime);
-	
-	UFUNCTION(Server, Unreliable)
 	void Server_SendYaw(float NewYaw);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_OnNumRocketsChanged(int32 NewRocketAmount);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_SendLocation(const FVector& LocationToSend, float DeltaTime);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_SendRotation(const FRotator& RotationToSend, float DeltaTime);
 
 	UFUNCTION(BlueprintPure)
 	int32 GetNumRockets() const { return NumRockets; }
@@ -159,6 +142,8 @@ public:
 	void FireRocket();
 
 	void SpawnRockets();
+
+	void HandleInvalidPickUp(AFGPickup* Pickup);
 
 public:
 
@@ -225,6 +210,8 @@ private:
 	UPROPERTY(EditAnywhere, Category = Network)
 	bool bPerformNetworkSmoothing = true;
 
+	float MaxMeshDistanceFromPlayer = 5.0f;
+
 	FVector OriginalMeshOffset = FVector::ZeroVector;
 
 	int32 ServerNumRockets = 0;
@@ -250,12 +237,6 @@ private:
 	UFGNetDebugWidget* DebugMenuInstance = nullptr;
 
 	bool bShowDebugMenu = false;
-
-	FVector prevPingedLocation = FVector::ZeroVector;
-
-	FRotator prevPingedRotation = FRotator::ZeroRotator;
-
-	float PrevPingedTime = 0.0f;
 
 	const float TransitionTime = 2.5f;
 

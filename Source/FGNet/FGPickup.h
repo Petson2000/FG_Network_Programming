@@ -20,13 +20,21 @@ class FGNET_API AFGPickup : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
 	AFGPickup();
 
 	virtual void BeginPlay() override;
+
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void Tick(float DeltaTime) override;
+
+	bool GetIsPickedUp();
+
+	UFUNCTION()
+	void ReActivatePickup();
+
+	UFUNCTION()
+	void SetVisibility(bool NewVisible);
 
 public:
 
@@ -58,8 +66,7 @@ private:
 
 private:
 
-	UFUNCTION()
-	void ReActivatePickup();
+
 
 	UFUNCTION()
 	void OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

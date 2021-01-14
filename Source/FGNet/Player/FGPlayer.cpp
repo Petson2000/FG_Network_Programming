@@ -95,6 +95,8 @@ void AFGPlayer::Tick(float DeltaTime)
 	FFGFrameMovement FrameMovement = MovementComponent->CreateFrameMovement();
 	FGMovementData MovementData;
 
+	GetPing();
+
 	if (IsLocallyControlled())
 	{
 		ClientTimeStamp += DeltaTime;
@@ -117,15 +119,15 @@ void AFGPlayer::Tick(float DeltaTime)
 		MovementComponent->ApplyGravity();
 		FrameMovement.AddDelta(GetActorForwardVector() * MovementVelocity * DeltaTime);
 
-		if (MovementData.NetSerialize(MovementData.Archive, MovementData.Map, MovementData.bFinishedLoading))
-		{
-			MovementComponent->Move(FrameMovement);
-			Server_SendMovement(GetActorLocation(), ClientTimeStamp, Forward, GetActorRotation().Yaw, MovementData);
-		}
+		MovementComponent->Move(FrameMovement);
+		Server_SendMovement(GetActorLocation(), ClientTimeStamp, Forward, GetActorRotation().Yaw, MovementData);
 	}
 
 	else
 	{
+		//GEngine->AddOnScreenDebugMessage(-10, 1.f, FColor::Yellow, FString::Printf(TEXT("Client Time Stamp: %f"), ClientTimeStamp));
+		//GEngine->AddOnScreenDebugMessage(-10, 1.f, FColor::Yellow, FString::Printf(TEXT("Last Correction Delta: %f"), LastCorrectionDelta));
+
 		const float Friction = IsBraking() ? PlayerSettings->BrakingFriction : PlayerSettings->Friction;
 		MovementVelocity *= FMath::Pow(Friction, DeltaTime);
 		FrameMovement.AddDelta(GetActorForwardVector() * MovementVelocity * DeltaTime);
@@ -133,7 +135,24 @@ void AFGPlayer::Tick(float DeltaTime)
 
 		if (bPerformNetworkSmoothing)
 		{
-			const FVector NewRelativeLocation = FMath::VInterpTo(MeshComponent->GetRelativeLocation(), OriginalMeshOffset, LastCorrectionDelta, 1.75f);
+			//If mesh is close we don't need that high speed
+			float InterpSpeed = 0.0f;
+
+			float TestFloat = FVector::Distance(OriginalMeshOffset, MeshComponent->GetRelativeLocation());
+
+			if (FVector::Distance(OriginalMeshOffset, MeshComponent->GetRelativeLocation()) < MaxMeshDistanceFromPlayer)
+			{
+				InterpSpeed = .5f;
+			}
+
+			else
+			{
+				InterpSpeed = 5.0f;
+			}
+
+			GEngine->AddOnScreenDebugMessage(-10, 1.f, FColor::Yellow, FString::Printf(TEXT("Distance: %f"), TestFloat));
+
+			const FVector NewRelativeLocation = FMath::VInterpTo(MeshComponent->GetRelativeLocation(), OriginalMeshOffset, LastCorrectionDelta, InterpSpeed);
 			MeshComponent->SetRelativeLocation(NewRelativeLocation, false, nullptr, ETeleportType::TeleportPhysics);
 		}
 	}
@@ -161,6 +180,32 @@ void AFGPlayer::SpawnRockets()
 	}
 }
 
+void AFGPlayer::HandleInvalidPickUp(AFGPickup* Pickup)
+{
+	if (ServerNumRockets - Pickup->NumRockets >= 0)
+	{
+		ServerNumRockets -= Pickup->NumRockets;
+	}
+
+	else
+	{
+		ServerNumRockets = 0;
+	}
+
+	if (NumRockets - Pickup->NumRockets >= 0)
+	{
+		NumRockets -= Pickup->NumRockets;
+	}
+
+	else
+	{
+		NumRockets = 0;
+	}
+
+	Pickup->ReActivatePickup();
+	Multicast_OnNumRocketsChanged(NumRockets);
+}
+
 int32 AFGPlayer::GetPing() const
 {
 	if (GetPlayerState())
@@ -173,27 +218,34 @@ int32 AFGPlayer::GetPing() const
 
 void AFGPlayer::Client_OnPickupRockets_Implementation(int32 PickedUpRockets)
 {
-	//NumRockets += PickedUpRockets;
 	BP_OnNumRocketsChanged(NumRockets);
 }
 
 void AFGPlayer::Server_OnPickup_Implementation(AFGPickup* Pickup)
 {
-	ServerNumRockets += Pickup->NumRockets;
-	Client_OnPickupRockets(Pickup->NumRockets);
+	if (!Pickup->GetIsPickedUp())
+	{
+		ServerNumRockets += Pickup->NumRockets;
+		Client_OnPickupRockets(Pickup->NumRockets);
+	}
+
+	else
+	{
+		HandleInvalidPickUp(Pickup);
+	}
 }
 
 void AFGPlayer::OnPickup(AFGPickup* Pickup)
 {
 	if (IsLocallyControlled())
 	{
+		Pickup->SetVisibility(false);
 		Server_OnPickup(Pickup);
 	}
 }
 
 void AFGPlayer::OnTakeDamage(float DamageAmount)
 {
-	//CurrentHealth -= DamageAmount;
 	Server_OnHealthChanged(CurrentHealth);
 }
 
@@ -253,17 +305,10 @@ void AFGPlayer::Multicast_SendMovement_Implementation(const FVector& InClientLoc
 {
 	if (!IsLocallyControlled())
 	{
-		MovementData.NetSerialize(MovementData.Archive, MovementData.Map, MovementData.bFinishedLoading);
-
 		Forward = ClientForward;
 		const float DeltaTime = FMath::Min(TimeStamp - ClientTimeStamp, MaxMoveDeltaTime);
 		ClientTimeStamp = TimeStamp;
 		AddMovementVelocity(DeltaTime);
-	
-		if (MovementData.Yaw != 0.0f)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("Net Serialized Yaw: %f"), MovementData.Yaw));
-		}
 
 		MovementComponent->SetFacingRotation(FRotator(0.0f, MovementData.Yaw, 0.0f));
 
@@ -327,34 +372,6 @@ UFGRocket* AFGPlayer::GetFreeRocket() const
 	}
 
 	return nullptr;
-}
-
-void AFGPlayer::Multicast_SendLocation_Implementation(const FVector& LocationToSend, float DeltaTime)
-{
-	if (!IsLocallyControlled())
-	{
-		prevPingedLocation = LocationToSend;
-		PrevPingedTime = DeltaTime;
-	}
-}
-
-void AFGPlayer::Multicast_SendRotation_Implementation(const FRotator& RotationToSend, float DeltaTime)
-{
-	if (!IsLocallyControlled())
-	{
-		prevPingedRotation = RotationToSend;
-		PrevPingedTime = DeltaTime;
-	}
-}
-
-void AFGPlayer::Server_SendLocation_Implementation(const FVector& LocationToSend, float DeltaTime)
-{
-	ReplicatedLocation = LocationToSend;
-}
-
-void AFGPlayer::Server_SendRotation_Implementation(const FRotator& RotationToSend, float DeltaTime)
-{
-	Multicast_SendRotation(RotationToSend, DeltaTime);
 }
 
 void AFGPlayer::Server_SendYaw_Implementation(float NewYaw)

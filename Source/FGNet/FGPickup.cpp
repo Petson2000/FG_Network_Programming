@@ -47,12 +47,10 @@ void AFGPickup::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AFGPickup::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 	const float PulsatingValue = FMath::MakePulsatingValue(GetWorld()->GetTimeSeconds(), 0.65f) * 30.0f;
 	const FVector NewLocation = CachedMeshRelativeLocation + FVector(0.0f, 0.0f, PulsatingValue);
 
 	FHitResult Hit;
-
 	MeshComponent->SetRelativeLocation(NewLocation, false, &Hit, ETeleportType::TeleportPhysics);
 	MeshComponent->AddRelativeRotation(FRotator(0.0f, 20.0f * DeltaTime, 0.0f), false, &Hit, ETeleportType::TeleportPhysics);
 }
@@ -60,9 +58,15 @@ void AFGPickup::Tick(float DeltaTime)
 void AFGPickup::ReActivatePickup()
 {
 	bPickedUp = false;
-	RootComponent->SetVisibility(true, true);
+	//RootComponent->SetVisibility(true, true);
+	SetVisibility(true);
 	SphereComponent->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 	SetActorTickEnabled(true);
+}
+
+void AFGPickup::SetVisibility(bool NewVisible)
+{
+	RootComponent->SetVisibility(NewVisible, true);
 }
 
 void AFGPickup::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -81,4 +85,9 @@ void AFGPickup::OverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* O
 		GetWorldTimerManager().SetTimer(ReActivateHandle, this, &AFGPickup::ReActivatePickup, ReActivateTime, false);
 		SetActorTickEnabled(false);
 	}
+}
+
+bool AFGPickup::GetIsPickedUp()
+{
+	return bPickedUp;
 }
