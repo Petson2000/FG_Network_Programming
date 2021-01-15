@@ -98,6 +98,8 @@ public:
 
 	void OnTakeDamage(float DamageAmount);
 
+	void OnHeal(float HealAmount);
+
 	UFUNCTION(Server, Reliable)
 	void Server_OnPickup(AFGPickup* Pickup);
 
@@ -110,10 +112,16 @@ public:
 	void Client_OnPickupRockets(int32 PickedUpRockets);
 
 	UFUNCTION(Server, Reliable)
-	void Server_OnHealthChanged(float DamageAmount);
+	void Server_OnTakeDamage(float DamageAmount);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_OnHealthChanged(float DamageAmount);
+	void Multicast_OnTakeDamage(float DamageAmount);
+
+	UFUNCTION(Server, Reliable)
+	void Server_OnHeal(float HealAmount);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_OnHeal(float HealAmount);
 
 	UFUNCTION(Server, Unreliable)
 	void Server_SendYaw(float NewYaw);
@@ -132,6 +140,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void Cheat_DecreaseHealthOnPlayer();
+
+	UFUNCTION(BlueprintCallable)
+	void Cheat_IncreasePlayerHealth();
 
 	void ShowDebugMenu();
 

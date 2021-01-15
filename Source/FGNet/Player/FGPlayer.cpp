@@ -19,6 +19,7 @@ const static float MaxMoveDeltaTime = 0.125f;
 AFGPlayer::AFGPlayer()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	RootComponent = CollisionComponent;
@@ -78,7 +79,7 @@ void AFGPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void AFGPlayer::OnHit(float DamageAmount)
 {
-	Server_OnHealthChanged(DamageAmount);
+	OnTakeDamage(DamageAmount);
 }
 
 void AFGPlayer::Tick(float DeltaTime)
@@ -125,9 +126,6 @@ void AFGPlayer::Tick(float DeltaTime)
 
 	else
 	{
-		//GEngine->AddOnScreenDebugMessage(-10, 1.f, FColor::Yellow, FString::Printf(TEXT("Client Time Stamp: %f"), ClientTimeStamp));
-		//GEngine->AddOnScreenDebugMessage(-10, 1.f, FColor::Yellow, FString::Printf(TEXT("Last Correction Delta: %f"), LastCorrectionDelta));
-
 		const float Friction = IsBraking() ? PlayerSettings->BrakingFriction : PlayerSettings->Friction;
 		MovementVelocity *= FMath::Pow(Friction, DeltaTime);
 		FrameMovement.AddDelta(GetActorForwardVector() * MovementVelocity * DeltaTime);
@@ -246,18 +244,41 @@ void AFGPlayer::OnPickup(AFGPickup* Pickup)
 
 void AFGPlayer::OnTakeDamage(float DamageAmount)
 {
-	Server_OnHealthChanged(CurrentHealth);
+	//Spawn effects and alike
+	Server_OnTakeDamage(DamageAmount);
 }
 
-void AFGPlayer::Server_OnHealthChanged_Implementation(float DamageAmount)
+void AFGPlayer::OnHeal(float HealAmount)
 {
-	Multicast_OnHealthChanged(CurrentHealth);
+	//Spawn effects / sound etc here.
+	Server_OnHeal(HealAmount);
+}
+
+void AFGPlayer::Server_OnTakeDamage_Implementation(float DamageAmount)
+{
+	if (CurrentHealth - DamageAmount >= 0) //If not, damage is invalid. Player should be dead
+	{
+		Multicast_OnTakeDamage(DamageAmount);
+	}
+}
+
+void AFGPlayer::Multicast_OnTakeDamage_Implementation(float DamageAmount)
+{
+	CurrentHealth -= DamageAmount;
 	BP_OnHealthChanged(CurrentHealth);
 }
 
-void AFGPlayer::Multicast_OnHealthChanged_Implementation(float DamageAmount)
+void AFGPlayer::Server_OnHeal_Implementation(float HealAmount)
 {
-	CurrentHealth -= DamageAmount;
+	if (CurrentHealth + HealAmount <= PlayerSettings->MaxHealth)
+	{
+		Multicast_OnHeal(HealAmount);
+	}
+}
+
+void AFGPlayer::Multicast_OnHeal_Implementation(float HealAmount)
+{
+	CurrentHealth += HealAmount;
 	BP_OnHealthChanged(CurrentHealth);
 }
 
@@ -421,7 +442,12 @@ void AFGPlayer::Handle_FirePressed()
 
 void AFGPlayer::Cheat_DecreaseHealthOnPlayer()
 {
-	OnTakeDamage(CurrentHealth);
+	OnTakeDamage(10);
+}
+
+void AFGPlayer::Cheat_IncreasePlayerHealth()
+{
+	OnHeal(10.0f);
 }
 
 void AFGPlayer::ShowDebugMenu()

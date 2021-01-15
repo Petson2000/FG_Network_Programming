@@ -9,7 +9,7 @@
 class AFGPlayer;
 
 UCLASS()
-class FGNET_API UFGRocket : public UStaticMeshComponent
+class FGNET_API UFGRocket : public UPrimitiveComponent
 {
 	GENERATED_BODY()
 	
