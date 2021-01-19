@@ -157,11 +157,10 @@ public:
 	void HandleInvalidPickUp(AFGPickup* Pickup);
 
 public:
-
 	UPROPERTY(Replicated)
 	float CurrentHealth = 0.0f;
 
-	UPROPERTY(Replicated, /*Transient,*/ BlueprintReadWrite, Category = Weapon)
+	UPROPERTY(Replicated, Transient, BlueprintReadWrite, Category = Weapon)
 	TArray<UFGRocket*> RocketInstances;
 
 private:
@@ -193,11 +192,10 @@ private:
 	void Cheat_IncreaseRockets(int32 InNumRockets);
 
 	UFUNCTION(Server, Unreliable)
-	void Server_SendMovement(const FVector& ClientLocation, float TimeStamp, float ClientForward, float ClientYaw, FGMovementData MovementData);
+	void Server_SendMovement(const FVector& ClientLocation, float TimeStamp, float ClientForward, FGMovementData MovementData);
 
 	UFUNCTION(NetMulticast, Unreliable)
-	void Multicast_SendMovement(const FVector& InClientLocation, float TimeStamp, float ClientForward, float ClientYaw, FGMovementData MovementData);
-	
+	void Multicast_SendMovement(const FVector& InClientLocation, float TimeStamp, float ClientForward, FGMovementData MovementData);
 
 private:
 	

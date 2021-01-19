@@ -19,7 +19,6 @@ const static float MaxMoveDeltaTime = 0.125f;
 AFGPlayer::AFGPlayer()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	RootComponent = CollisionComponent;
@@ -96,7 +95,6 @@ void AFGPlayer::Tick(float DeltaTime)
 	FFGFrameMovement FrameMovement = MovementComponent->CreateFrameMovement();
 	FGMovementData MovementData;
 
-	GetPing();
 
 	if (IsLocallyControlled())
 	{
@@ -121,7 +119,7 @@ void AFGPlayer::Tick(float DeltaTime)
 		FrameMovement.AddDelta(GetActorForwardVector() * MovementVelocity * DeltaTime);
 
 		MovementComponent->Move(FrameMovement);
-		Server_SendMovement(GetActorLocation(), ClientTimeStamp, Forward, GetActorRotation().Yaw, MovementData);
+		Server_SendMovement(GetActorLocation(), ClientTimeStamp, Forward, MovementData);
 	}
 
 	else
@@ -140,7 +138,7 @@ void AFGPlayer::Tick(float DeltaTime)
 
 			if (FVector::Distance(OriginalMeshOffset, MeshComponent->GetRelativeLocation()) < MaxMeshDistanceFromPlayer)
 			{
-				InterpSpeed = .5f;
+				InterpSpeed = 1.75f;
 			}
 
 			else
@@ -148,9 +146,10 @@ void AFGPlayer::Tick(float DeltaTime)
 				InterpSpeed = 5.0f;
 			}
 
-			GEngine->AddOnScreenDebugMessage(-10, 1.f, FColor::Yellow, FString::Printf(TEXT("Distance: %f"), TestFloat));
+			GEngine->AddOnScreenDebugMessage(-10, 1.f, FColor::Green, FString::Printf(TEXT("Distance: %f"), TestFloat));
+			GEngine->AddOnScreenDebugMessage(-10, 1.f, FColor::Green, FString::Printf(TEXT("InterpSpeed: %f"), InterpSpeed));
 
-			const FVector NewRelativeLocation = FMath::VInterpTo(MeshComponent->GetRelativeLocation(), OriginalMeshOffset, LastCorrectionDelta, InterpSpeed);
+			const FVector NewRelativeLocation = FMath::VInterpTo(MeshComponent->GetRelativeLocation(), OriginalMeshOffset, LastCorrectionDelta, 5.0f);
 			MeshComponent->SetRelativeLocation(NewRelativeLocation, false, nullptr, ETeleportType::TeleportPhysics);
 		}
 	}
@@ -216,7 +215,7 @@ int32 AFGPlayer::GetPing() const
 
 void AFGPlayer::Client_OnPickupRockets_Implementation(int32 PickedUpRockets)
 {
-	BP_OnNumRocketsChanged(NumRockets);
+	BP_OnNumRocketsChanged(ServerNumRockets);
 }
 
 void AFGPlayer::Server_OnPickup_Implementation(AFGPickup* Pickup)
@@ -235,11 +234,8 @@ void AFGPlayer::Server_OnPickup_Implementation(AFGPickup* Pickup)
 
 void AFGPlayer::OnPickup(AFGPickup* Pickup)
 {
-	if (IsLocallyControlled())
-	{
-		Pickup->SetVisibility(false);
-		Server_OnPickup(Pickup);
-	}
+	Pickup->SetVisibility(false);
+	Server_OnPickup(Pickup);
 }
 
 void AFGPlayer::OnTakeDamage(float DamageAmount)
@@ -256,7 +252,7 @@ void AFGPlayer::OnHeal(float HealAmount)
 
 void AFGPlayer::Server_OnTakeDamage_Implementation(float DamageAmount)
 {
-	if (CurrentHealth - DamageAmount >= 0) //If not, damage is invalid. Player should be dead
+	if (CurrentHealth - DamageAmount >= 0)
 	{
 		Multicast_OnTakeDamage(DamageAmount);
 	}
@@ -317,12 +313,12 @@ void AFGPlayer::Cheat_IncreaseRockets(int32 InNumRockets)
 	}
 }
 
-void AFGPlayer::Server_SendMovement_Implementation(const FVector& ClientLocation, float TimeStamp, float ClientForward, float ClientYaw, FGMovementData MovementData)
+void AFGPlayer::Server_SendMovement_Implementation(const FVector& ClientLocation, float TimeStamp, float ClientForward, FGMovementData MovementData)
 {
-	Multicast_SendMovement(ClientLocation, TimeStamp, ClientForward, ClientYaw, MovementData);
+	Multicast_SendMovement(ClientLocation, TimeStamp, ClientForward, MovementData);
 }
 
-void AFGPlayer::Multicast_SendMovement_Implementation(const FVector& InClientLocation, float TimeStamp, float ClientForward, float ClientYaw, FGMovementData MovementData)
+void AFGPlayer::Multicast_SendMovement_Implementation(const FVector& InClientLocation, float TimeStamp, float ClientForward, FGMovementData MovementData)
 {
 	if (!IsLocallyControlled())
 	{
