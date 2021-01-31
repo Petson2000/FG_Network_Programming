@@ -215,14 +215,15 @@ int32 AFGPlayer::GetPing() const
 
 void AFGPlayer::Client_OnPickupRockets_Implementation(int32 PickedUpRockets)
 {
-	BP_OnNumRocketsChanged(ServerNumRockets);
+	NumRockets += PickedUpRockets;
+	BP_OnNumRocketsChanged(NumRockets);
+	Multicast_OnNumRocketsChanged(NumRockets);
 }
 
 void AFGPlayer::Server_OnPickup_Implementation(AFGPickup* Pickup)
 {
 	if (!Pickup->GetIsPickedUp())
 	{
-		ServerNumRockets += Pickup->NumRockets;
 		Client_OnPickupRockets(Pickup->NumRockets);
 	}
 
